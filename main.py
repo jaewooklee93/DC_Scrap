@@ -2,7 +2,7 @@
 # Author: J. Lee
 # Python 2.7.12 on Linux Mint 18
 
-import re, os, requests, pickle, shutil, urllib
+import re, os, requests, pickle, urllib
 from bs4 import BeautifulSoup
 from urlparse import urlparse
 from os.path import splitext, basename
@@ -21,7 +21,7 @@ def init():
 	except:
 		pass
 	try:
-		os.makedirs(dir_name+'/images') # 처음 실행하는 경우, 폴더를 구성
+		os.makedirs(dir_name+'/images/common') # 처음 실행하는 경우, 폴더를 구성
 	except:
 		pass
 
@@ -40,17 +40,23 @@ def save_page(url):
 	for link in soup.select('img'):
 		try:
 			img_src=link.get('src')
-			filename=basename(urlparse(img_src).path)
-			if filename=='viewimage.php': # 이미지 다운로드
+			if basename(urlparse(img_src).path)=='viewimage.php': # 이미지 다운로드
 				img=urllib.urlopen(img_src.replace('dcimg1','dcimg2'))
 				img_name=img.info().getheader('Content-Disposition')[21:]
 				open(dir_name+'/images/'+img_name, 'wb').write(img.read())
 				html=html.replace(img_src,'images/'+img_name)
+			elif img_src:
+				img_name=basename(urlparse(img_src).path)
+				if not os.path.isfile(dir_name+'/images/common/'+img_name):
+					img=urllib.urlopen(img_src)
+					open(dir_name+'/images/common/'+img_name, 'wb').write(img.read())
+				html=html.replace(img_src,'images/common/'+img_name)
 		except:
-			print img_src
+			print img_name
 
-	open(dir_name+'/['+str(page_no)+'] '+soup.title.string+'.html','w').write(html.encode('utf8'))
-	print "save: "+page_no
+	filename=dir_name+'/['+str(page_no)+'] '+soup.title.string+'.html'
+	open(filename,'w').write(html.encode('utf8'))
+	print "page_no: "+page_no
 
 
 def scrap():
@@ -58,7 +64,8 @@ def scrap():
 	soup=BeautifulSoup(html,'lxml')
 
 	for link in soup.select('td > a'): # 개념글들의 url을 추출
-		if link.get('class')==['icon_pic_b']:
+		icon=link.get('class')
+		if icon and icon[0] in ['icon_pic_b', 'icon_txt_b', 'sec_icon']:
 			href=link.get('href')
 			if not href in done_list:
 				save_page(domain+href)
