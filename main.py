@@ -33,7 +33,7 @@ def cleanup():
 
 
 def save_page(href):
-	page_no=re.findall(r'\d+', href)[0] # 글 번호
+	page_no=re.findall(r'\d+', href)[-2] # 글 번호
 
 	url=domain+href
 	driver.get(url)
@@ -50,15 +50,9 @@ def save_page(href):
 				open(dir_name+'/images/'+img_name, 'wb').write(img.read())
 
 				link['src']='images/'+img_name
-			elif img_src:
-				img_name=basename(urlparse(img_src).path)
-				if not os.path.isfile(dir_name+'/images/common/'+img_name):
-					img=urllib.urlopen(img_src)
-					open(dir_name+'/images/common/'+img_name, 'wb').write(img.read())
-
-					link['src']='images/common/'+img_name
 		except:
 			pass
+
 
 	filename=dir_name+'/['+str(page_no)+'] '+soup.title.string+'.html'
 	open(filename,'w').write(soup.encode('utf8'))
