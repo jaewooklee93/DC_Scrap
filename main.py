@@ -31,33 +31,35 @@ def init():
 def cleanup():
 	pickle.dump(done_list,open(dir_name+'/images/common/done_list.log','w'))
 
+def save_page(url):
+	page_no=re.findall(r'\d+', url)[-2] # 글 번호
+	print "page_no: "+page_no,
 
-def save_page(href):
-	page_no=re.findall(r'\d+', href)[-2] # 글 번호
-
-	url=domain+href
-	driver.get(url)
+	driver.get(url) # 병목 구간
 	html=driver.page_source
 	soup=BeautifulSoup(html,'lxml')
 
-
-	for link in soup.select('img'):
+	for link in soup.select('img'): # 이미지 다운로드
 		try:
-			img_src=link.get('src')
-			if basename(urlparse(img_src).path)=='viewimage.php': # 이미지 다운로드
+			img_src=link['src']
+			if basename(urlparse(img_src).path) in ['viewimage.php', 'dccon.php']: 
 				img=urllib.urlopen(img_src.replace('dcimg1','dcimg2'))
 				img_name=img.info().getheader('Content-Disposition')[21:]
-				open(dir_name+'/images/'+img_name, 'wb').write(img.read())
 
+				while os.path.isfile(dir_name+'/images/'+img_name): # 파일 이름 중복 시를 대비
+					name, ext=os.path.splitext(img_name)
+					img_name=name+'a'+ext
+
+				open(dir_name+'/images/'+img_name, 'wb').write(img.read()) # save image file
 				link['src']='images/'+img_name
 		except:
-			pass
+			print img_src
 
 
 	filename=dir_name+'/['+str(page_no)+'] '+soup.title.string+'.html'
-	open(filename,'w').write(soup.encode('utf8'))
-	print "page_no: "+page_no
-
+	open(filename,'w').write(soup.encode('utf8')) # save html file
+	
+	print "ok"
 
 def scrap():
 	html=requests.get(domain+recommend_url).text
@@ -68,7 +70,7 @@ def scrap():
 		if icon and icon[0] in ['icon_pic_b', 'icon_txt_b', 'sec_icon']:
 			href=link.get('href')
 			if not href in done_list:
-				save_page(href)
+				save_page(domain+href)
 				done_list.append(href)
 
 
